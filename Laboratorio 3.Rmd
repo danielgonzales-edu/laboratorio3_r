@@ -1,0 +1,202 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+#Ejercicio 1:
+calcular_datos = function(df, var_independiente, var_dependiente) {
+  #1. Un arreglo con los valores de los estimadores para Bo y B1.
+  x = df[[var_independiente]]
+  y = df[[var_dependiente]]
+  
+  n = length(x)
+  sumatoria.x = sum(x)
+  sumatoria.y = sum(y)
+  sumatoria.xy = sum(x*y)
+  sumatoria.x2 = sum(x^2)
+  
+  b1 = ((sumatoria.x*sumatoria.y)-(n*sumatoria.xy))/((sumatoria.x)^2-(n*sumatoria.x2))
+  b0 = (sumatoria.y-(b1*sumatoria.x))/n
+  
+  #2. El valor del coeficiente de determinación r^2 del modelo.
+  y_estimada = b1 + b0*x
+  r2 = sum((y_estimada-mean(y))^2)/sum((y-mean(y))^2)
+  
+  #3. El coeficiente de correlación r (raíz cuadrada de r^2). 
+  r = sqrt(r2)
+  
+  #4. Un arreglo con los valores de los residuos.
+  residuo = y-y_estimado
+  
+  #5. Una gráfica con la nube de puntos y la recta de regresión del modelo.
+  grafica = ggplot(data = df, aes_string(x = var_independiente, y = var_dependiente)) +
+    geom_point() +
+    geom_abline(intercept = b1, slope = b0, color = "blue")
+  
+  resultado = list(estimadores = c(b1, b0), 
+                   r2 = r2, 
+                   r = r, 
+                   residuo = residuo, grafica =  grafica)
+  
+  return(resultado)
+}
+
+```
+
+```{r}
+datosx = sample(1:10, 25, replace = TRUE)
+datosy = sample(1:10, 25, replace = TRUE)
+df = data.frame(X = datosx, Y = datosy)
+
+print(df)
+res = calcular_datos(df, df$X, df)
+print(res)
+```
+
+```{r}
+#Ejercicio 2:
+library(dplyr)
+library(lubridate)
+
+dataset <- read.csv("Admisions.csv")
+```
+
+```{r}
+dataset
+```
+
+```{r}
+#1. Realice un análisis estadístico sobre todas las variables del dataset, recuerde que pude usar la función summary().
+summary(dataset)
+```
+
+```{r}
+#2. Realice una gráfica de densidad para cada una de las variables numéricas en el dataset: GRE.Score, TOEFL.Score, CGPA y Chance of Admit.
+
+#Gráfica GRE.Score
+df = data.frame(GRE.Score = dataset$GRE.Score)
+ggplot(df, aes(x=GRE.Score)) + geom_density() + labs(tittle = "Gráfica de densidad de GRE.Score")
+```
+
+```{r}
+#Gráfica TOEFEL.Score
+df = data.frame(TOEFL.Score = dataset$TOEFL.Score)
+ggplot(df, aes(x=TOEFL.Score)) + geom_density() + labs(tittle = "Gráfica de densidad de TOEFL.Score")
+```
+
+```{r}
+#Gráfica CGPA
+df = data.frame(CGPA = dataset$CGPA)
+ggplot(df, aes(x=CGPA)) + geom_density() + labs(tittle = "Gráfica de densidad de CGPA")
+```
+
+```{r}
+#Gráfica Chance of Admit
+df = data.frame(Chance.of.Admit = dataset$Chance.of.Admit)
+ggplot(df, aes(x=Chance.of.Admit)) + geom_density() + labs(tittle = "Gráfica de densidad de Chance.of.Admit")
+```
+
+```{r}
+#3. Realice una gráfica de correlación entre las variables del inciso anterior.
+df2 = dataset[, c("GRE.Score", "TOEFL.Score", "CGPA", "Chance.of.Admit")]
+matriz_correlacion = cor(df2)
+df_correlacion <- as.data.frame(as.table(matriz_correlacion))
+print(df_correlacion)
+```
+
+```{r}
+ggplot(df_correlacion, aes(x = Var1, y = Var2, fill=Freq)) + geom_tile() +
+  scale_fill_gradient2(low = "grey", mid = "white", high = "black", midpoint = 0) +
+  labs(title = "Gráfica de Correlación")
+```
+
+## 4. Realice comentarios sobre el análisis estadístico de las variables numéricas y la gráfica de correlación.
+
+## Las variables con mayor correlacion son Chance.of.Admit y CGPA con 0.8824126
+
+```{r}
+#5. Realice un scatter plot (nube de puntos) de todas las variables numéricas contra la variable Chance of Admit.
+ggplot(dataset, aes(x = Chance.of.Admit)) +
+  geom_point(aes(y = TOEFL.Score), color = "red") +
+  geom_point(aes(y = CGPA), color = "green") +
+  geom_point(aes(y = GRE.Score), color = "blue") +
+
+  labs(title = "Scatter plot de Variables numéricas vs. Chance.of.Admit",
+       x = "Chance.of.Admit",
+       y = "Variable")
+```
+
+```{r}
+#6. Utilizando la función train y trainControl para crear un crossvalidation y le permita evaluar los siguientes modelos:
+
+library(caret)
+
+ctrl = trainControl(method = "cv",
+                    numbe = 5)
+```
+
+```{r}
+#Modelo 1: Chance of Admit ~ TOEFEL.Score
+modelo1 = train(Chance.of.Admit ~ TOEFL.Score,
+                 data = dataset,
+                 method = "lm",
+                 trControl = ctrl)
+print(modelo1)
+```
+
+```{r}
+#Modelo 2: Chance of Admit ~ CGPA.
+modelo2 = train(Chance.of.Admit ~ CGPA,
+                 data = dataset,
+                 method = "lm",
+                 trControl = ctrl)
+print(modelo2)
+```
+
+```{r}
+#Modelo 3:Chance of Admit ~ GRE.Score.
+modelo3 = train(Chance.of.Admit ~ GRE.Score,
+                 data = dataset,
+                 method = "lm",
+                 trControl = ctrl)
+print(modelo3)
+```
+
+```{r}
+#Modelo 4: Chance of Admit ~ TOEFL.Score + CGPA.
+modelo4 = train(Chance.of.Admit ~ TOEFL.Score + CGPA,
+                 data = dataset,
+                 method = "lm",
+                 trControl = ctrl)
+print(modelo4)
+```
+
+```{r}
+#Modelo 5: Chance of Admit ~ TOEFL.Score + GRE.Score.
+modelo5 = train(Chance.of.Admit ~ TOEFL.Score + GRE.Score,
+                 data = dataset,
+                 method = "lm",
+                 trControl = ctrl)
+print(modelo5)
+```
+
+```{r}
+#Modelo 7: Chance of Admit ~ TOEFL.Score + CGPA + GRE.Score.
+modelo7 = train(Chance.of.Admit ~ TOEFL.Score + CGPA + GRE.Score,
+                 data = dataset,
+                 method = "lm",
+                 trControl = ctrl)
+print(modelo7)
+```
+## Ejercicio 3
+## Modelo 1: Analizando los datos, se observa que se obtiene una media bastante superior a 0, lo cual nos muestra que los datos no estan balanceados o que son irregulares. El valor del error estandar se aleja bastante de 0. Se observa que existen valores inferiores a 0.05 que es el limite para valores significantes. 
+
+## Modelo 2: Se observa que en este modelo se agregaron 2 nuevas variables, HGRAD e INC.Se observa que en este modelo la media es mas cercana a 0 en comparacion con el modelo anterior. Lo que permite comprender que la recta tiene un mejor ajuste. Analizando la ultima columna se puede observar que todos los valores son menores que 0.05, por lo que se consideran significantes. El codigo de significancia nos muestra que es un modelo que se podria utilizar.
+
+## Modelo 3: Analizando los datos, se observa que este modelo es el que mejor tiene la recta debido a la media que se obtiene. Con los valores de la ultima columna se entiende que son significantes ya que son bastante menores a 0.05 y su nivel de significancia nos indica que es un modelo que se ajusta muy bien aunque posea pocos datos. 
+
